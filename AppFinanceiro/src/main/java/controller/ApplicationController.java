@@ -1,62 +1,71 @@
 package controller;
 
+import dao.*;
 import model.Financas;
 import model.Usuario;
 import view.FinanceiroScreen;
+import util.HibernateUtil;
 import view.LoginScreen;
-import dao.FinancaDAO;
-import dao.FinancaDAOImpl;
 
 import javax.swing.*;
 import java.util.List;
 
 public class ApplicationController {
 
-    private FinanceiroScreen view;
-    private UsuariosController usuariosController;
-    private FinancasController financasController;
-    private CategoriaController categoriaController;
+    private final FinanceiroScreen view;
+    private final Usuario usuario;
 
-    public ApplicationController(UsuariosController usuariosController) {
-        this.usuariosController = usuariosController;
-        Usuario usuario = usuariosController.getUsuarioAtual();
-
-        FinancaDAO financaDAO = new FinancaDAOImpl(usuariosController.getSessionFactory());
-
-        this.financasController = new FinancasController(usuario, financaDAO);
-        this.categoriaController = new CategoriaController(usuario, usuariosController.getSessionFactory());
+    public ApplicationController(Usuario usuario, FinancaDAO financaDAO) {
+        if (usuario == null) {
+            throw new IllegalArgumentException("Usuário não pode ser nulo");
+        }
 
         this.view = new FinanceiroScreen(usuario.getNome());
+        this.usuario = usuario;
 
-        this.view.addAdicionarFinancaListener(e -> abrirTelaAdicionarFinanca());
-        this.view.addHistoricoFinancaListener(e -> abrirTelaHistorico());
-        this.view.addGerenciarCategoriaListener(e -> abrirTelaCategorias());
-        this.view.addExibirTotalFinancasListener(e -> exibirTotalFinancas());
-        this.view.addSairListener(e -> confirmarSaida());
+        CategoriaDAO categoriaDAO = new CategoriaDAOImpl(HibernateUtil.getSessionFactory(), usuario);
+
+        this.view.addAdicionarFinancaListener(e -> abrirTelaAdicionarFinanca(financaDAO, categoriaDAO, usuario));
+        this.view.addHistoricoFinancaListener(e -> abrirTelaHistorico(financaDAO, categoriaDAO, usuario));
+        this.view.addGerenciarCategoriaListener(e -> abrirTelaCategorias(categoriaDAO));
+        this.view.addExibirTotalFinancasListener(e -> exibirTotalFinancas(financaDAO, usuario));
+        this.view.addSairListener(e -> confirmarSaida(usuario));
     }
 
-    private void abrirTelaAdicionarFinanca() {
-        new CadastrarFinancasController(financasController, categoriaController);
+    private void abrirTelaAdicionarFinanca(FinancaDAO financaDAO, CategoriaDAO categoriaDAO, Usuario usuario) {
+        new CadastrarFinancasController(financaDAO, categoriaDAO, usuario);
     }
 
-    private void abrirTelaHistorico() {
-        List<Financas> lista = financasController.listarFinancas();
+    private void abrirTelaHistorico(FinancaDAO financaDAO, CategoriaDAO categoriaDAO, Usuario usuario) {
+        if (usuario == null || usuario.getId() == null) {
+            view.mostrarMensagem("Erro: Usuário não encontrado.");
+            return;
+        }
+
+        List<Financas> lista = financaDAO.listarPorUsuario();
         if (lista.isEmpty()) {
             view.mostrarMensagem("Nenhuma finança cadastrada ainda.");
         } else {
-            new HistoricoFinancasController(financasController, categoriaController);
+            UsuarioDAO usuarioDAO = new UsuarioDAOImpl(HibernateUtil.getSessionFactory());
+            new HistoricoFinancasController(financaDAO, categoriaDAO, usuarioDAO, usuario);
         }
     }
 
-    private void abrirTelaCategorias() {
+    private void abrirTelaCategorias(CategoriaDAO categoriaDAO) {
+        CategoriaController categoriaController = new CategoriaController(usuario, HibernateUtil.getSessionFactory());
         new GerenciadorCategoriaController(categoriaController);
     }
 
-    private void exibirTotalFinancas() {
+    private void exibirTotalFinancas(FinancaDAO financaDAO, Usuario usuario) {
+        if (usuario == null) {
+            view.mostrarMensagem("Erro: Usuário não encontrado.");
+            return;
+        }
+
         double totalReceitas = 0;
         double totalDespesas = 0;
 
-        for (Financas f : financasController.listarFinancas()) {
+        for (Financas f : financaDAO.listarPorUsuario()) {
             if (f.getValor() > 0) {
                 totalReceitas += f.getValor();
             } else {
@@ -76,7 +85,7 @@ public class ApplicationController {
         view.mostrarMensagem(mensagem);
     }
 
-    private void confirmarSaida() {
+    private void confirmarSaida(Usuario usuario) {
         int resposta = JOptionPane.showConfirmDialog(
                 view.getFrame(),
                 "Deseja realmente sair do seu usuário?",
@@ -86,8 +95,10 @@ public class ApplicationController {
 
         if (resposta == JOptionPane.YES_OPTION) {
             view.dispose();
+
             LoginScreen novaTelaLogin = new LoginScreen();
-            new LoginController(novaTelaLogin, usuariosController);
+
+            new LoginController(novaTelaLogin, new UsuarioDAOImpl(HibernateUtil.getSessionFactory()), new FinancaDAOImpl(HibernateUtil.getSessionFactory(), usuario));
         }
     }
 }

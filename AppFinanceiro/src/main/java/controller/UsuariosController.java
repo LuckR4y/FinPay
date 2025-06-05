@@ -1,10 +1,7 @@
 package controller;
 
 import dao.UsuarioDAO;
-import dao.UsuarioDAOImpl;
 import model.Usuario;
-import org.hibernate.SessionFactory;
-import org.hibernate.cfg.Configuration;
 
 // Gerenciar os usuários do sistema
 public class UsuariosController {
@@ -12,24 +9,9 @@ public class UsuariosController {
     private UsuarioDAO usuarioDAO;
     private Usuario usuarioAtual;
 
-    private static final SessionFactory factory = buildSessionFactory();
 
-    private static SessionFactory buildSessionFactory() {
-        try {
-            return new Configuration()
-                    .configure("hibernate.cfg.xml")
-                    .addAnnotatedClass(Usuario.class)
-                    .addAnnotatedClass(model.Categoria.class)
-                    .addAnnotatedClass(model.Financas.class)
-                    .buildSessionFactory();
-        } catch (Throwable ex) {
-            System.err.println("Falha ao criar SessionFactory: " + ex);
-            throw new ExceptionInInitializerError(ex);
-        }
-    }
-
-    public UsuariosController() {
-        this.usuarioDAO = new UsuarioDAOImpl(factory);
+    public UsuariosController(UsuarioDAO usuarioDAO) {
+        this.usuarioDAO = usuarioDAO;
     }
 
     public void adicionarUsuario(Usuario usuario) {
@@ -41,6 +23,11 @@ public class UsuariosController {
     }
 
     public boolean autenticarUsuario(String login, String senha) {
+        if (login == null || login.isEmpty() || senha == null || senha.isEmpty()) {
+            System.out.println("Login ou senha estão vazios.");
+            return false;
+        }
+
         Usuario usuario = buscarUsuario(login);
         if (usuario != null && usuario.verificaSenha(senha)) {
             usuarioAtual = usuario;
@@ -53,7 +40,4 @@ public class UsuariosController {
         return usuarioAtual;
     }
 
-    public SessionFactory getSessionFactory() {
-        return factory;
-    }
 }

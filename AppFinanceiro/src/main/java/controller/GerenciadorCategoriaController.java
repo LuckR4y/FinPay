@@ -22,7 +22,6 @@ public class GerenciadorCategoriaController {
         view.addSelecionarCorListener(e -> selecionarCor());
 
         atualizarListaCategorias();
-
         view.setVisible(true);
     }
 
@@ -33,7 +32,9 @@ public class GerenciadorCategoriaController {
             return;
         }
 
-        categoriaController.adicionarCategoria(nome, view.getCorSelecionada());
+
+        Categoria categoria = new Categoria(nome, view.getCorSelecionada(), categoriaController.getUsuario()); // 'usuario' é passado diretamente
+        categoriaController.adicionarCategoria(categoria);
         view.limparCampoNome();
         atualizarListaCategorias();
     }
@@ -102,6 +103,9 @@ public class GerenciadorCategoriaController {
 
     private void atualizarListaCategorias() {
         List<Categoria> categorias = categoriaController.listarCategorias();
+        if (categorias == null || categorias.isEmpty()) {
+            categorias = List.of();
+        }
         view.atualizarListaCategorias(categorias);
     }
 }

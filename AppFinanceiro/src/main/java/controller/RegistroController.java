@@ -1,15 +1,16 @@
 package controller;
 
+import dao.UsuarioDAO;
 import model.Usuario;
 import view.RegistroScreen;
 
 public class RegistroController {
 
-    private RegistroScreen view;
-    private UsuariosController usuariosController;
+    private final RegistroScreen view;
+    private final UsuarioDAO usuarioDAO;
 
-    public RegistroController(UsuariosController usuariosController) {
-        this.usuariosController = usuariosController;
+    public RegistroController(UsuarioDAO usuarioDAO) {
+        this.usuarioDAO = usuarioDAO;
         this.view = new RegistroScreen();
 
         this.view.addRegistrarListener(e -> registrarUsuario());
@@ -22,10 +23,15 @@ public class RegistroController {
         String senha = view.getSenha();
 
         if (!nome.isEmpty() && !login.isEmpty() && !senha.isEmpty()) {
-            Usuario novo = new Usuario(nome, login, senha);
-            usuariosController.adicionarUsuario(novo);
-            view.mostrarMensagem("Usuário registrado com sucesso!");
-            view.dispose();
+            Usuario usuarioExistente = usuarioDAO.buscarPorLogin(login);
+            if (usuarioExistente != null) {
+                view.mostrarErro("Este login já está em uso. Tente outro.");
+            } else {
+                Usuario novo = new Usuario(nome, login, senha);
+                usuarioDAO.salvar(novo);
+                view.mostrarMensagem("Usuário registrado com sucesso!");
+                view.dispose();
+            }
         } else {
             view.mostrarErro("Preencha todos os campos!");
         }

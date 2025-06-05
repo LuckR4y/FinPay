@@ -1,6 +1,7 @@
 package dao;
 
 import model.Categoria;
+import model.Usuario;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -11,16 +12,20 @@ import java.util.List;
 
 public class CategoriaDAOImpl implements CategoriaDAO {
 
-    private SessionFactory factory;
+    private final SessionFactory factory;
+    private final Usuario usuario;
 
-    public CategoriaDAOImpl(SessionFactory factory) {
+    public CategoriaDAOImpl(SessionFactory factory, Usuario usuario) {
         this.factory = factory;
+        this.usuario = usuario;
     }
 
+    @Override
     public void salvar(Categoria categoria) {
         Transaction transaction = null;
         try (Session session = factory.openSession()) {
             transaction = session.beginTransaction();
+            categoria.setUsuario(usuario);
             session.save(categoria);
             transaction.commit();
         } catch (Exception e) {
@@ -29,6 +34,7 @@ public class CategoriaDAOImpl implements CategoriaDAO {
         }
     }
 
+    @Override
     public void atualizar(Categoria categoria) {
         Transaction transaction = null;
         try (Session session = factory.openSession()) {
@@ -55,11 +61,11 @@ public class CategoriaDAOImpl implements CategoriaDAO {
     }
 
     // Função para deletar (ATUALIZADA) - Verifica se existe ao menos uma finança associada a categoria, seu tiver não permite a exclusão, caso contrário a categoria é excluída do banco.
+    @Override
     public void deletar(Categoria categoria) {
         Long totalFinancas = contarFinancasPorCategoria(categoria);
 
         if (totalFinancas != null && totalFinancas > 0) {
-            // Exibe mensagem de erro para o usuário, e não apaga a categoria
             JOptionPane.showMessageDialog(null,
                     "Não pode excluir essa categoria pois ela já possui finança(s) cadastrada(s).",
                     "Erro ao excluir categoria",
@@ -78,10 +84,15 @@ public class CategoriaDAOImpl implements CategoriaDAO {
         }
     }
 
-    public List<Categoria> listarPorUsuario(Long usuarioId) {
+    @Override
+    public List<Categoria> listarPorUsuario() {
+        if (usuario == null) {
+            throw new IllegalArgumentException("Usuário não pode ser nulo");
+        }
+
         try (Session session = factory.openSession()) {
-            return session.createQuery("FROM Categoria c WHERE c.usuario.id = :uid", Categoria.class)
-                    .setParameter("uid", usuarioId)
+            return session.createQuery("FROM Categoria c WHERE c.usuario.id = :usuarioId", Categoria.class)
+                    .setParameter("usuarioId", usuario.getId())
                     .list();
         }
     }

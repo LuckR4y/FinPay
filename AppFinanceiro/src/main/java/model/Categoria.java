@@ -10,7 +10,6 @@ public class Categoria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String nome;
     private String colorHex;
 
@@ -27,7 +26,7 @@ public class Categoria {
         this.usuario = usuario;
     }
 
-    public long getId() { return id; }
+    public Long getId() { return id; }
 
     public String getNome() {
         return nome;
