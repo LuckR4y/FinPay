@@ -1,6 +1,10 @@
 package controller;
 
+import dao.FinancaDAO;
+import dao.CategoriaDAO;
 import model.Categoria;
+import model.Financas;
+import model.Usuario;
 import view.CadastrarFinancasScreen;
 
 import java.util.Date;
@@ -8,13 +12,15 @@ import java.util.List;
 
 public class CadastrarFinancasController {
 
-    private CadastrarFinancasScreen view;
-    private FinancasController financasController;
-    private CategoriaController categoriaController;
+    private final CadastrarFinancasScreen view;
+    private final FinancaDAO financaDAO;
+    private final CategoriaDAO categoriaDAO;
+    private final Usuario usuario;
 
-    public CadastrarFinancasController(FinancasController financasController, CategoriaController categoriaController) {
-        this.financasController = financasController;
-        this.categoriaController = categoriaController;
+    public CadastrarFinancasController(FinancaDAO financaDAO, CategoriaDAO categoriaDAO, Usuario usuario) {
+        this.financaDAO = financaDAO;
+        this.categoriaDAO = categoriaDAO;
+        this.usuario = usuario;
         this.view = new CadastrarFinancasScreen();
 
         // Atualiza combo de categorias na tela
@@ -25,7 +31,7 @@ public class CadastrarFinancasController {
     }
 
     private void atualizarCategorias() {
-        List<Categoria> categorias = categoriaController.listarCategorias();
+        List<Categoria> categorias = categoriaDAO.listarPorUsuario();
         view.atualizarCategorias(categorias);
     }
 
@@ -50,7 +56,9 @@ public class CadastrarFinancasController {
                 valor = -valor;
             }
 
-            financasController.cadastrarFinanca(descricao, valor, categoria, data);
+            Financas financa = new Financas(descricao, valor, categoria, data, usuario);
+            financaDAO.salvar(financa);
+
             String valorFormatado = String.format(java.util.Locale.forLanguageTag("pt-BR"), "%.2f", Math.abs(valor));
             String tipoMsg = valor > 0 ? "Receita" : "Despesa";
 

@@ -15,9 +15,9 @@ public class Usuario {
     private String login;
     private String senha;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "usuario")
+    @OneToMany(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY, mappedBy = "usuario")
     private List<Financas> financas = new ArrayList<>();
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "usuario")
+    @OneToMany(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY, mappedBy = "usuario")
     private List<Categoria> categorias = new ArrayList<>();
 
     public Usuario() {}
@@ -57,6 +57,7 @@ public class Usuario {
     // Função para adicionar finanças por usuário
     public void adicionarFinanca(Financas f) {
         financas.add(f);
+        f.setUsuario(this);
     }
 
     // Obter categorias de cada usuário - TRABALHAR NISSO AINDA
@@ -65,7 +66,9 @@ public class Usuario {
     }
 
     // Função de adicionar categoria por usuários
+
     public void adicionarCategoria(Categoria c) {
         categorias.add(c);
+        c.setUsuario(this);
     }
 }

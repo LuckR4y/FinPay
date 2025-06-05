@@ -1,8 +1,12 @@
 package controller;
 
+import dao.UsuarioDAO;
 import model.Categoria;
 import model.Financas;
 import view.HistoricoFinancasScreen;
+import dao.FinancaDAO;
+import dao.CategoriaDAO;
+import model.Usuario;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,14 +19,16 @@ import java.util.stream.Collectors;
 public class HistoricoFinancasController {
 
     private final HistoricoFinancasScreen view;
-    private final FinancasController financasController;
-    private final CategoriaController categoriaController;
+    private final FinancaDAO financaDAO;
+    private final CategoriaDAO categoriaDAO;
+    private final UsuarioDAO usuarioDAO;
     private List<Financas> financasList;
 
-    public HistoricoFinancasController(FinancasController financasController, CategoriaController categoriaController) {
-        this.financasController = financasController;
-        this.categoriaController = categoriaController;
-        this.financasList = financasController.listarFinancas();
+    public HistoricoFinancasController(FinancaDAO financaDAO, CategoriaDAO categoriaDAO, UsuarioDAO usuarioDAO, Usuario usuario) {
+        this.financaDAO = financaDAO;
+        this.categoriaDAO = categoriaDAO;
+        this.usuarioDAO = usuarioDAO;
+        this.financasList = financaDAO.listarPorUsuario();
 
         this.view = new HistoricoFinancasScreen();
         inicializarView();
@@ -32,7 +38,8 @@ public class HistoricoFinancasController {
     private void inicializarView() {
         List<String> categorias = new ArrayList<>();
         categorias.add("Todas as Categorias");
-        categorias.addAll(categoriaController.listarCategorias().stream().map(Categoria::getNome).toList());
+
+        categorias.addAll(categoriaDAO.listarPorUsuario().stream().map(Categoria::getNome).toList());
 
         view.setComboCategorias(categorias);
         view.setComboTipos(List.of("Todos", "Receita", "Despesa"));
@@ -66,9 +73,8 @@ public class HistoricoFinancasController {
     // Função para filtrar - OPÇÃO DE FILTRAR POR DATA ATUALIZADA!
     private void filtrar() {
         try {
-            // Filtro por data - ATUALIZADO
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-            sdf.setLenient(false); // Não aceita datas q nn existem
+            sdf.setLenient(false);  // Não aceita datas q nn existem
 
             Date dataInicial = view.getDataInicialFiltro().isEmpty()
                     ? new GregorianCalendar(2024, Calendar.JANUARY, 1).getTime()
@@ -78,7 +84,7 @@ public class HistoricoFinancasController {
                     ? new GregorianCalendar(2100, Calendar.DECEMBER, 31).getTime()
                     : sdf.parse(view.getDataFinalFiltro());
 
-            List<Financas> listaFiltrada = financasController.buscarPorPeriodo(dataInicial, dataFinal);
+            List<Financas> listaFiltrada = financaDAO.buscarPorData(dataInicial, dataFinal);
 
             // Filtro por descrição
             String descricaoFiltro = view.getDescricaoFiltro().trim().toLowerCase();
@@ -145,12 +151,16 @@ public class HistoricoFinancasController {
                 f.getCategoria().setNome(txtCategoria.getText().trim());
                 f.setData(new SimpleDateFormat("dd/MM/yyyy").parse(txtData.getText().trim()));
 
-                financasController.atualizarFinanca(f);
+
+                if (f.getCategoria().getId() == null) {
+                    if (f.getCategoria().getUsuario().getId() == null) {
+                        usuarioDAO.salvar(f.getCategoria().getUsuario());
+                    }
+                    categoriaDAO.salvar(f.getCategoria());
+                }
+
+                financaDAO.atualizar(f);
                 atualizarLista(financasList);
-            } catch (ParseException pe) {
-                view.mostrarMensagem("Formato de data inválido! Use DD/MM/AAAA.");
-            } catch (NumberFormatException nfe) {
-                view.mostrarMensagem("Valor inválido! Digite um número válido para o valor.");
             } catch (Exception e) {
                 view.mostrarMensagem("Erro ao editar: " + e.getMessage());
             }
@@ -164,7 +174,7 @@ public class HistoricoFinancasController {
         int confirm = JOptionPane.showConfirmDialog(view.getFrame(), "Tem certeza que deseja excluir?", "Remover", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             Financas f = financasList.get(index);
-            financasController.deletarFinanca(f);
+            financaDAO.deletar(f);
             financasList.remove(index);
             atualizarLista(financasList);
         }

@@ -13,8 +13,8 @@ import java.util.HashMap;
 
 public class FinancasController {
 
-    private FinancaDAO dao;
-    private Usuario usuario;
+    private final FinancaDAO dao;
+    private final Usuario usuario;
 
     public FinancasController(Usuario usuario, FinancaDAO dao) {
         this.usuario = usuario;
@@ -27,12 +27,13 @@ public class FinancasController {
     }
 
     public List<Financas> listarFinancas() {
-        return dao.listarPorUsuario(usuario.getId());
+        return dao.listarPorUsuario();
     }
 
     // Métodos para editar, excluir e buscar
     public void atualizarFinanca(Financas financa) {
         dao.atualizar(financa);
+        System.out.println("Finança atualizada com sucesso.");
     }
 
     public void deletarFinanca(Financas financa) {
@@ -43,7 +44,7 @@ public class FinancasController {
         // Ajusta a dataInicial para 00:00:00 e dataFinal para 23:59:59
         Date dataInicio = normalizarDataInicio(dataInicial);
         Date dataFim = normalizarDataFim(dataFinal);
-        return dao.buscarPorData(dataInicio, dataFim, usuario.getId());
+        return dao.buscarPorData(dataInicio, dataFim);
     }
 
     private Date normalizarDataInicio(Date data) {
